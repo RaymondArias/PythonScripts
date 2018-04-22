@@ -8,12 +8,10 @@ namespace = "dev"
 def getDeployment(baseString):
     v1 = client.AppsV1Api()
     print("Get Deployments with: " + baseString)
-    #ret = v1.list_pod_for_all_namespaces(watch=False)
     api_response = v1.list_namespaced_deployment(namespace, pretty='false', limit=10, timeout_seconds=10)
     items = api_response.items
     for item in items:
         deploymentName = item._metadata._name
-        #print(deploymentName)
         if baseString in deploymentName:
             exportDeployment(deploymentName)
             
@@ -31,12 +29,9 @@ def getService(baseString):
     items = api_response.items
     for item in items:
         serviceName = item._metadata._name
-        #print(deploymentName)
         if baseString in serviceName:
             print('Found service:' + serviceName)
             exportService(serviceName)
-    
-    #print(api_response)
 
 def exportService(serviceName):
     api_instance = client.CoreV1Api()
@@ -49,10 +44,14 @@ def getSecret(baseString):
     items = api_response.items
     for item in items:
         secretName = item._metadata._name
-        #print(deploymentName)
         if baseString in secretName:
-            print('Found secret:' + serviceName)
-            exportService(serviceName)
+            print('Found secret:' + secretName)
+            exportSecret(secretName)
+
+def exportSecret(secretName):
+    api_instance = client.CoreV1Api()
+    api_response = api_instance.read_namespaced_secret(secretName, namespace, pretty='true', exact=True, export=True)
+    convertToYAML(api_response.to_dict(), secretName+"-secret")
     
 def removeNullValue(data):
     keysToRemove = []
@@ -89,14 +88,6 @@ def formatKeys(dict):
                 splitString[i] = ''.join(stringList)
                 k8sFormattedString += splitString[i]
             oldToNewKey[key] = k8sFormattedString
-#             letter = splitString[1][0]
-#             stringList = list(splitString[1])
-#             letter = letter.upper()
-#             stringList[0] = letter
-#             splitString[1] = ''.join(stringList)
-#             k8sFormattedString = splitString[0] + splitString[1]
-#             #replaceKey(dict, k8sFormattedString, key)
-#             oldToNewKey[key] = k8sFormattedString
     replaceKey(dict, oldToNewKey)
     
 def removeNullsFromList(list):
@@ -113,7 +104,7 @@ def removeNullsFromList(list):
 def convertToYAML(data, fileName):
     formatKeys(data)
     removeNullValue(data)
-    with open(fileName+'.yml', 'w') as outfile:
+    with open('../output/'+fileName+'.yml', 'w') as outfile:
         yaml.safe_dump(data, outfile, default_flow_style=False)
     
 
@@ -122,3 +113,4 @@ config.load_kube_config()
 
 getDeployment("dev")
 getService('dev')
+getSecret('dev')
