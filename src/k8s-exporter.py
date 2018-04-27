@@ -52,6 +52,21 @@ def exportSecret(secretName):
     api_instance = client.CoreV1Api()
     api_response = api_instance.read_namespaced_secret(secretName, namespace, pretty='true', exact=True, export=True)
     convertToYAML(api_response.to_dict(), secretName+"-secret")
+
+def getConfigmap(baseString):
+    api_instance = client.CoreV1Api()
+    api_response = api_instance.list_namespaced_config_map(namespace, pretty='false', limit=10, timeout_seconds=10)
+    items = api_response.items
+    for item in items:
+        configmapName = item._metadata._name
+        if baseString in configmapName:
+            print('Found configmap:' + configmapName)
+            exportConfigmap(configmapName)
+            
+def exportConfigmap(configName):
+    api_instance = client.CoreV1Api()
+    api_response = api_instance.read_namespaced_config_map(configName, namespace, pretty='true', exact=True, export=True)
+    convertToYAML(api_response.to_dict(), configName+"-configmap")
     
 def removeNullValue(data):
     keysToRemove = []
@@ -114,3 +129,4 @@ config.load_kube_config()
 getDeployment("dev")
 getService('dev')
 getSecret('dev')
+getConfigmap('dev')
